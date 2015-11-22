@@ -115,7 +115,6 @@ ISR(TIMER0_COMPA_vect) {
 	} else {
 		// ideally should never get here, but may occasionally due to timing
 	}
-	
 }
 
 

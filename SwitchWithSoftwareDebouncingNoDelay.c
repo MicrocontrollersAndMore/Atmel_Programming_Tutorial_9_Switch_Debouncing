@@ -1,6 +1,7 @@
 // SwitchWithSoftwareDebouncingNoDelay.c
 
-// put LED on PC5
+// switch on PC5 (pin 28)
+// 8 LEDs on Port D pins
 
 #ifndef F_CPU					// if F_CPU was not defined in Project -> Properties
 #define F_CPU 1000000UL			// define it now as 1 GHz unsigned long
@@ -36,8 +37,8 @@ int main(void) {
 				intConsecutiveNonPresses = 0;
 			}
 		} else if(BIT_IS_SET(PINC, PC5)) {						// else if button is not pressed (logic low)
-			intConsecutiveNonPresses++;
-			if(intConsecutiveNonPresses >= NUM_OF_CONSECUTIVE_NON_PRESSES) {
+			intConsecutiveNonPresses++;											// increment counter for number of non-presses
+			if(intConsecutiveNonPresses >= NUM_OF_CONSECUTIVE_NON_PRESSES) {	// if enough consecutive non-presses that we are convinced the switch is not being pressed
 				intConsecutivePresses = 0;										// reset press counts
 				intConsecutiveNonPresses = 0;
 			}
