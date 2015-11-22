@@ -1,4 +1,4 @@
-// SwitchWithSoftwareDebouncingInterrupt.c
+// SwitchWithSoftwareDebouncingInterruptAveraging.c
 
 // switch on PC5 (pin 28)
 // 8 LEDs on Port D pins
@@ -13,11 +13,11 @@
 #define BIT_IS_SET(byte, bit) (byte & (1 << bit))
 #define BIT_IS_CLEAR(byte, bit) (!(byte & (1 << bit)))
 
-#define NUM_OF_CONSECUTIVE_PRESSES 75
-#define NUM_OF_CONSECUTIVE_NON_PRESSES 4
+#define SIZE_OF_PRESS_ARRAY 13
+#define MIN_ACCEPTABLE_NUM_OF_PRESSES 11
 
-volatile int intConsecutivePresses = 0;
-volatile int intConsecutiveNonPresses = 0;
+volatile unsigned char uchPressesArray[SIZE_OF_PRESS_ARRAY] = { 0 };
+volatile unsigned char uchPressIndex = 0;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main(void) {
@@ -54,7 +54,7 @@ int main(void) {
 	
 	bit           7          6        5       4         3         2         1        0
 	name        FOC0A      FOC0B      -       -       WGM02      CS02      CS01     CS00
-	set to        0          0        0       0         0         0         1        0
+	set to        0          0        0       0         0         0         1        1
 	
 	FOC0A = 0     don't use Force Output Compare A
 	FOC0B = 0
@@ -65,10 +65,10 @@ int main(void) {
 	WGM02 = 0     CTC (Clear Timer on Compare match) mode, see TCCR0A also
 	
 	CS02 = 0
-	CS01 = 1      chip clock / 8
-	CS00 = 0
+	CS01 = 1      chip clock / 64
+	CS00 = 1
 	*/
-	TCCR0B = 0b00000010;
+	TCCR0B = 0b00000011;
 	
 	/*
 	TIMSK0 - Timer/Counter 0 Interrupt Mask Register
@@ -99,22 +99,34 @@ int main(void) {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ISR(TIMER0_COMPA_vect) {
-	if(BIT_IS_CLEAR(PINC, PC5)) {										// if button is pressed (logic low)
-		intConsecutivePresses++;											// increment counter for number of presses
-		if(intConsecutivePresses >= NUM_OF_CONSECUTIVE_PRESSES) {			// if enough presses to constitute a press
-			PORTD++;														// increment Port D LEDs
-			intConsecutivePresses = 0;										// and reset press counts
-			intConsecutiveNonPresses = 0;
-		}
-	} else if(BIT_IS_SET(PINC, PC5)) {						// else if button is not pressed (logic low)
-		intConsecutiveNonPresses++;
-		if(intConsecutiveNonPresses >= NUM_OF_CONSECUTIVE_NON_PRESSES) {
-			intConsecutivePresses = 0;										// reset press counts
-			intConsecutiveNonPresses = 0;
-		}
+	unsigned char i;								// declare loop counter variable
+	unsigned char uchNumOfPressesInPressArray = 0;	// this will contain how many out of SIZE_OF_PRESS_ARRAY were presses
+	
+	if(uchPressIndex >= SIZE_OF_PRESS_ARRAY) {		// if the press array index has gone past the end of the array
+		uchPressIndex = 0;							// reset to zero
+	}
+	
+	if(BIT_IS_CLEAR(PINC, PC5)) {					// if the switch is pressed
+		uchPressesArray[uchPressIndex] = 1;			// set current index of presses array to 1
+	} else if(BIT_IS_SET(PINC, PC5)) {				// else if the switch is not pressed
+		uchPressesArray[uchPressIndex] = 0;			// set current index of pressed array to 0
 	} else {
 		// ideally should never get here, but may occasionally due to timing
 	}
+	uchPressIndex++;								// increment presses array index for next time through
+	
+	for(i = 0; i < SIZE_OF_PRESS_ARRAY; i++) {		// loop through presses array
+		uchNumOfPressesInPressArray = uchNumOfPressesInPressArray + uchPressesArray[i];			// add each value into total
+	}
+	
+													// if the press array is filled with a high enough proportion of presses to be considered a press
+	if(uchNumOfPressesInPressArray >= MIN_ACCEPTABLE_NUM_OF_PRESSES) {
+		PORTD++;										// increment PORTD LEDs
+		for(i = 0; i < SIZE_OF_PRESS_ARRAY; i++) {		
+			uchPressesArray[i] = 0;
+		}
+	}
+	
 	
 }
 
