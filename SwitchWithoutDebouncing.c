@@ -1,9 +1,10 @@
 // SwitchWithoutDebouncing.c
 
-// put LED on PC5
+// switch on PC5 (pin 28)
+// 8 LEDs on Port D pins
 
 #ifndef F_CPU					// if F_CPU was not defined in Project -> Properties
-#define F_CPU 1000000UL			// define it now as 1 GHz unsigned long
+#define F_CPU 1000000UL			// define it now as 1 MHz unsigned long
 #endif
 
 #include <avr/io.h>				// this is always included in AVR programs
@@ -22,9 +23,8 @@ int main(void) {
 	DDRD = 0xFF;				// set Port D pins for output
 	
 	while (1) {					// begin infinite loop
-		if(BIT_IS_CLEAR(PINC, PC5)) {
-			PORTD++;
-			
+		if(BIT_IS_CLEAR(PINC, PC5)) {			// if switch is pressed
+			PORTD++;							// increment count on Port D pins
 		}
 	}
 	return(0);					// should never get here, this is to prevent a compiler warning
